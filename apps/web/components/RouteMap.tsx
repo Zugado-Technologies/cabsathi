@@ -44,7 +44,7 @@ function loadGoogleMaps(key: string): Promise<void> {
 let mapplsLoader: Promise<void> | null = null;
 
 /** Loads the Mappls (MapmyIndia) Web SDK once. */
-function loadMappls(key: string): Promise<void> {
+export function loadMappls(key: string): Promise<void> {
   if (window.mappls?.Map) return Promise.resolve();
   mapplsLoader ??= new Promise<void>((resolve, reject) => {
     window.__cabsathiMapplsReady = () => resolve();

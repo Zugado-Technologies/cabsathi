@@ -1,6 +1,6 @@
 import { searchPlaces as searchLocal, type Place, type PlaceSuggestion } from '@cabsathi/shared';
 import { env } from './env';
-import { mapplsPlace, mapplsSearch } from './mappls';
+import { mapplsPlace, mapplsReverse, mapplsSearch } from './mappls';
 
 const TIMEOUT_MS = 5000;
 /** Bias results towards Delhi NCR. */
@@ -13,7 +13,8 @@ const NCR_BIAS = { circle: { center: { latitude: 28.58, longitude: 77.2 }, radiu
  */
 export async function searchPlaces(q: string, sessionToken?: string): Promise<PlaceSuggestion[]> {
   const input = q.trim();
-  if (input.length < 2) return searchLocal(input);
+  // No preset list: suggestions only appear once the person types.
+  if (input.length < 2) return [];
 
   if (env.mapplsKey) {
     try {
@@ -85,4 +86,17 @@ export async function placeDetails(placeId: string, sessionToken?: string): Prom
     lat: p.location.latitude,
     lng: p.location.longitude,
   };
+}
+
+/** Name for a point picked on the map or from the phone's location. */
+export async function reversePlace(lat: number, lng: number): Promise<Place> {
+  if (env.mapplsKey) {
+    try {
+      const r = await mapplsReverse({ lat, lng }, env.mapplsKey);
+      if (r) return { name: r.name, lat, lng };
+    } catch (err) {
+      console.warn('[places] Mappls reverse geocode failed:', (err as Error).message);
+    }
+  }
+  return { name: 'Pinned location', lat, lng };
 }

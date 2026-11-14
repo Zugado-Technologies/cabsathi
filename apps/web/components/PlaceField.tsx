@@ -1,13 +1,15 @@
 'use client';
 
 import type { Place, PlaceSuggestion } from '@cabsathi/shared';
-import { MapPin, Search, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { LocateFixed, Map as MapIcon, MapPin, Search, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { currentPosition } from '@/lib/location';
+import { MapPicker } from './MapPicker';
 
 /**
- * Location input with suggestions. Uses Google Places through our API when a
- * key is configured, otherwise the built-in Delhi NCR list.
+ * Location input. Typing shows place suggestions from our API (Mappls). Before
+ * typing, the menu offers "Use current location" and "Choose on map".
  */
 export function PlaceField({
   value,
@@ -29,28 +31,51 @@ export function PlaceField({
   const [results, setResults] = useState<PlaceSuggestion[]>([]);
   const [searched, setSearched] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
   // One Google "session" from typing to picking a place keeps search billing low.
   const session = useRef<string | null>(null);
 
   useEffect(() => setText(value?.name ?? ''), [value]);
 
+  const query = text === value?.name ? '' : text.trim();
+
   useEffect(() => {
-    if (!open) return;
+    if (!open || query.length < 2) {
+      setResults([]);
+      return;
+    }
     session.current ??= crypto.randomUUID();
     const t = setTimeout(() => {
       api
-        .places(text === value?.name ? '' : text, session.current!)
+        .places(query, session.current!)
         .then((r) => {
           setResults(r);
-          setSearched(text);
+          setSearched(query);
         })
         .catch(() => {
           setResults([]);
-          setSearched(text);
+          setSearched(query);
         });
     }, 250);
     return () => clearTimeout(t);
-  }, [text, open, value?.name]);
+  }, [query, open]);
+
+  const useMyLocation = async () => {
+    setOpen(false);
+    setError(null);
+    setLocating(true);
+    try {
+      const at = await currentPosition();
+      onChange(await api.reversePlace(at.lat, at.lng));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const closeMap = useCallback(() => setMapOpen(false), []);
 
   const pick = async (s: PlaceSuggestion) => {
     setOpen(false);
@@ -77,7 +102,7 @@ export function PlaceField({
         <input
           aria-label={label}
           value={text}
-          placeholder={placeholder}
+          placeholder={locating ? 'Finding your location…' : placeholder}
           autoComplete="off"
           onChange={(e) => {
             setText(e.target.value);
@@ -103,13 +128,19 @@ export function PlaceField({
         )}
       </div>
       {error && <p className="error" style={{ marginTop: 4 }}>{error}</p>}
-      {open && results.length === 0 && searched.trim().length >= 2 && searched === text && text !== value?.name && (
-        <div className="dropdown" role="status" style={{ padding: '10px 12px', fontSize: 14 }}>
-          <span className="muted">No places found for “{searched}”. Try a nearby landmark or sector.</span>
-        </div>
-      )}
-      {open && results.length > 0 && (
-        <div className="dropdown" role="listbox">
+      {open && (
+        <div className="dropdown" role="listbox" aria-label={`${label} options`}>
+          {query.length < 2 && (
+            <button type="button" role="option" aria-selected={false} className="action" onMouseDown={(e) => e.preventDefault()} onClick={useMyLocation}>
+              <LocateFixed size={16} style={{ flexShrink: 0 }} />
+              Use current location
+            </button>
+          )}
+          {query.length >= 2 && results.length === 0 && searched === query && (
+            <div role="status" style={{ padding: '10px 12px', fontSize: 14 }}>
+              <span className="muted">No places found for “{searched}”. Try a nearby landmark, or choose on the map.</span>
+            </div>
+          )}
           {results.map((s) => (
             <button
               key={s.placeId ?? s.name}
@@ -130,8 +161,38 @@ export function PlaceField({
               </span>
             </button>
           ))}
+          <button
+            type="button"
+            role="option"
+            aria-selected={false}
+            className="action"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setOpen(false);
+              setMapOpen(true);
+            }}
+          >
+            <MapIcon size={16} style={{ flexShrink: 0 }} />
+            Choose on map
+          </button>
         </div>
+      )}
+      {mapOpen && (
+        <MapPicker
+          title={`Choose ${label} on map`}
+          start={value}
+          pinColor={pinColor.startsWith('var(') ? PIN_HEX[pinColor] ?? '#1D4ED8' : pinColor}
+          onClose={closeMap}
+          onPick={(p) => {
+            setMapOpen(false);
+            setError(null);
+            onChange(p);
+          }}
+        />
       )}
     </div>
   );
 }
+
+/** The map pin is drawn as SVG, so it needs real colours rather than CSS variables. */
+const PIN_HEX: Record<string, string> = { 'var(--red)': '#E5484D', 'var(--green)': '#1F9D6C' };

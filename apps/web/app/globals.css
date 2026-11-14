@@ -229,3 +229,14 @@ button.field { justify-content: flex-start; text-align: left; }
 .booker-card { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: #eef3fb; border: 1.5px solid #c9d8f5; color: var(--primary-dark); }
 .booker-card.me { background: var(--green-light); border-color: #bfe7d3; color: var(--green-dark); }
 .steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; line-height: 1.5; }
+
+/* Choose on map */
+.map-picker { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: var(--bg, #f4f6fb); }
+.map-picker-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #fff; border-bottom: 1px solid var(--border); }
+.map-picker-top .icon-btn { color: var(--text); display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; }
+.map-picker-top .icon-btn:hover { background: #f1f5fd; }
+.map-picker-map { position: relative; flex: 1; min-height: 0; }
+.map-picker-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.map-picker-locate { position: absolute; right: 12px; bottom: 16px; width: 46px; height: 46px; border-radius: 999px; background: #fff; display: grid; place-items: center; box-shadow: var(--shadow); }
+.map-picker-sheet { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); background: #fff; border-top-left-radius: 18px; border-top-right-radius: 18px; box-shadow: 0 -4px 16px rgba(20, 40, 90, .08); width: 100%; max-width: 560px; margin: 0 auto; }
+.dropdown .action { color: var(--primary); font-weight: 700; }

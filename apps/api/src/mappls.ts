@@ -10,8 +10,11 @@ const TIMEOUT_MS = 5000;
 const SEARCH = 'https://search.mappls.com/search';
 const ROUTE = 'https://route.mappls.com/route';
 const PLACE = 'https://place.mappls.com/O2O/entity';
-/** Delhi NCR centre, to rank nearby places first. */
-const NCR_CENTRE = '28.58,77.2';
+/**
+ * Keep suggestions inside Delhi NCR (north-west corner; south-east corner).
+ * Don't use `location=` instead: it makes Mappls return unrelated nearby places.
+ */
+const NCR_BOUNDS = 'bounds:28.95,76.80;28.20,77.65';
 /** Any fixed road point, used to snap a place code to coordinates. */
 const SNAP_TARGET = '77.2090,28.6139';
 
@@ -29,7 +32,7 @@ const coords = (points: LatLng[]) => points.map((p) => `${p.lng},${p.lat}`).join
 
 export async function mapplsSearch(q: string, key: string): Promise<PlaceSuggestion[]> {
   const data = await get(
-    `${SEARCH}/places/autosuggest/json?query=${encodeURIComponent(q)}&location=${NCR_CENTRE}&region=IND`,
+    `${SEARCH}/places/autosuggest/json?query=${encodeURIComponent(q)}&filter=${encodeURIComponent(NCR_BOUNDS)}`,
     key,
   );
   return (data.suggestedLocations ?? [])
@@ -56,6 +59,26 @@ export async function mapplsPlace(eLoc: string, key: string): Promise<Place | nu
   const location = route.waypoints?.[0]?.location;
   if (!Array.isArray(location)) return null;
   return { name: detail?.name ?? 'Selected place', lat: location[1], lng: location[0] };
+}
+
+/** A short readable name for a point, e.g. "Block A, Sector 62, Noida". */
+export async function mapplsReverse(at: LatLng, key: string): Promise<{ name: string; address: string } | null> {
+  const data = await get(`${SEARCH}/address/rev-geocode?lat=${at.lat}&lng=${at.lng}`, key);
+  const r = data.results?.[0];
+  if (!r) return null;
+  const clean = (x?: string) => {
+    const v = (x ?? '').trim();
+    return /^unnamed road$/i.test(v) ? '' : v;
+  };
+  // Most specific first: a named place, then the area, then the town.
+  const parts = [
+    clean(r.poi) || clean(r.houseName),
+    clean(r.subLocality) || clean(r.subSubLocality),
+    clean(r.locality) || clean(r.village),
+    clean(r.city) || clean(r.subDistrict) || clean(r.district),
+  ].filter((x, i, all) => x && all.indexOf(x) === i);
+  const name = parts.slice(0, 3).join(', ') || clean(r.street) || clean(r.formatted_address) || 'Pinned location';
+  return { name, address: r.formatted_address ?? '' };
 }
 
 /** Road route with live traffic, falling back to the no-traffic route. */

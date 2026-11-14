@@ -71,6 +71,7 @@ export const api = {
   updateMe: (input: UpdateProfileInput) => call<Me>('PATCH', '/me', input),
   places: (q: string, session?: string) =>
     call<PlaceSuggestion[]>('GET', `/places?q=${encodeURIComponent(q)}${session ? `&session=${session}` : ''}`),
+  reversePlace: (lat: number, lng: number) => call<Place>('GET', `/places/reverse?lat=${lat}&lng=${lng}`),
   placeDetails: (id: string, session?: string) =>
     call<Place>('GET', `/places/${encodeURIComponent(id)}${session ? `?session=${session}` : ''}`),
   estimate: (from: Place, to: Place) => call<RideEstimate>('POST', '/rides/estimate', { from, to }),

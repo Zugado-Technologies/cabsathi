@@ -10,6 +10,7 @@ import { PlaceField } from '@/components/PlaceField';
 import { SeatSlider } from '@/components/SeatSlider';
 import { WaveHeader } from '@/components/WaveHeader';
 import { api } from '@/lib/api';
+import { currentPosition } from '@/lib/location';
 import { dayLabel, istDate, rupees, timeLabel } from '@/lib/format';
 import { useSession } from '@/lib/session';
 
@@ -35,6 +36,20 @@ export default function CreateRide() {
   const [estimate, setEstimate] = useState<RideEstimate | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locating, setLocating] = useState(true);
+
+  // Start from where the person is now. If location is blocked, they type or pick on the map.
+  useEffect(() => {
+    let cancelled = false;
+    currentPosition()
+      .then((at) => api.reversePlace(at.lat, at.lng))
+      .then((here) => !cancelled && setFrom((prev) => prev ?? here))
+      .catch(() => {})
+      .finally(() => !cancelled && setLocating(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const departAt = istDate(day, minutes);
   const mapPoints = useMemo<MapPoint[]>(
@@ -75,7 +90,7 @@ export default function CreateRide() {
       <div className="app-body">
         <section className="card stack" style={{ position: 'relative', zIndex: 5 }}>
           <Label icon={<MapPin size={20} color="var(--orange)" fill="var(--orange)" fillOpacity={0.25} />} text="From" />
-          <PlaceField label="From" value={from} onChange={setFrom} placeholder="Where are you starting?" pinColor="var(--red)" trailing="clear" />
+          <PlaceField label="From" value={from} onChange={setFrom} placeholder={locating && !from ? 'Finding your location…' : 'Where are you starting?'} pinColor="var(--red)" trailing="clear" />
           <Label icon={<MapPin size={20} color="var(--green)" fill="var(--green)" fillOpacity={0.25} />} text="To" />
           <PlaceField label="To" value={to} onChange={setTo} placeholder="Where are you going?" pinColor="var(--green)" trailing="search" />
           <button

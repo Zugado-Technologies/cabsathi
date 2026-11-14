@@ -4,6 +4,7 @@ import {
   createRideSchema,
   estimateRideSchema,
   fareSplitSchema,
+  placeSchema,
   sendOtpSchema,
   updateProfileSchema,
   verifyOtpSchema,
@@ -15,7 +16,7 @@ import { requireAuth, sendOtp, verifyOtp } from './auth';
 import { one, pool, query } from './db';
 import { env } from './env';
 import { describeMatch, findMatches } from './matching';
-import { placeDetails, searchPlaces } from './places';
+import { placeDetails, reversePlace, searchPlaces } from './places';
 import { RIDE_COLUMNS, USER_COLUMNS, toRide, toUser } from './repo';
 import { estimateTrip } from './routing';
 import { TripError, getTrip, saveFareSplit, setPaid } from './trip';
@@ -101,6 +102,13 @@ export function buildApp() {
     auth.get('/places', async (req) => {
       const { q = '', session } = req.query as { q?: string; session?: string };
       return searchPlaces(q.slice(0, 100), session);
+    });
+
+    auth.get('/places/reverse', async (req) => {
+      const { lat, lng } = req.query as { lat?: string; lng?: string };
+      const point = placeSchema.pick({ lat: true, lng: true }).safeParse({ lat: Number(lat), lng: Number(lng) });
+      if (!point.success) throw new HttpError(400, 'Send a valid lat and lng');
+      return reversePlace(point.data.lat, point.data.lng);
     });
 
     auth.get('/places/:id', async (req) => {
