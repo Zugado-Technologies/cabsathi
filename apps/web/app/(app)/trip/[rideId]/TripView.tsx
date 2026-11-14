@@ -84,6 +84,20 @@ export function TripView({ rideId }: { rideId: string }) {
           {dayLabel(trip.departAt)}, {timeLabel(trip.departAt)} · {trip.members.length} people · ~{trip.totalKm} km
         </p>
 
+        <section className={`booker-card ${booker.isMe ? 'me' : ''}`} aria-label="Who books the cab">
+          <Avatar name={booker.user.name} size={44} verified={booker.user.verified} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 18, fontWeight: 800 }}>
+              {booker.isMe ? 'You book this cab' : `${first(booker.user.name)} books this cab`}
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.4, marginTop: 2 }}>
+              {booker.isMe
+                ? `You're dropped last, so the cab app trip ends with you. Everyone pays you their share.`
+                : `${first(booker.user.name)} is dropped last, so the cab app trip ends with them. You'll pay them your share.`}
+            </div>
+          </div>
+        </section>
+
         <section className="card stack" aria-label="People in this cab">
           <h3 className="label" style={{ fontSize: 16 }}>
             In this cab
@@ -122,18 +136,29 @@ export function TripView({ rideId }: { rideId: string }) {
           <h3 className="label" style={{ fontSize: 16 }}>
             Book the cab
           </h3>
-          <p style={{ fontSize: 14, lineHeight: 1.5 }}>
-            <b>{booker.isMe ? 'You' : first(booker.user.name)}</b>{' '}
-            {trip.split ? 'booked this cab.' : `should book — ${booker.isMe ? 'you are' : 'they are'} dropped last, so the trip ends with ${booker.isMe ? 'you' : 'them'}.`}{' '}
-            In the cab app, set pickup to <b>{firstStop.name}</b> and drop to <b>{lastStop.name}</b>
-            {middleStops.length > 0 && (
-              <>
-                , and add {middleStops.length === 1 ? 'a stop' : 'stops in this order'}:{' '}
-                <b>{middleStops.map((s) => s.place.name).join(' → ')}</b>
-              </>
-            )}
-            .
-          </p>
+          {booker.isMe ? (
+            <ol className="steps">
+              <li>
+                Open the cab app (estimates below; Uber opens with pickup and drop filled in).
+              </li>
+              <li>
+                Set pickup to <b>{firstStop.name}</b> and drop to <b>{lastStop.name}</b>.
+              </li>
+              {middleStops.length > 0 && (
+                <li>
+                  Add {middleStops.length === 1 ? 'a stop' : 'stops in this order'}:{' '}
+                  <b>{middleStops.map((s) => s.place.name).join(' → ')}</b>.
+                </li>
+              )}
+              <li>After booking, enter the exact fare below so everyone sees their share.</li>
+            </ol>
+          ) : (
+            <p style={{ fontSize: 14, lineHeight: 1.5 }}>
+              {trip.split
+                ? `${first(booker.user.name)} booked on ${trip.split.provider === 'other' ? 'a cab app' : trip.split.provider[0].toUpperCase() + trip.split.provider.slice(1)}.`
+                : `${first(booker.user.name)} will book the cab and enter the exact fare here. This is roughly what to expect:`}
+            </p>
+          )}
           <FareCompare
             km={trip.totalKm}
             minutes={Math.round(estimateMinutes(trip.totalKm))}
@@ -183,6 +208,9 @@ function FareSplitSection({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyPay, setBusyPay] = useState<string | null>(null);
+  const [changeBooker, setChangeBooker] = useState(
+    !!trip.split && trip.split.bookedByRideId !== trip.suggestedBookerRideId,
+  );
 
   const myRideIds = trip.members.filter((m) => m.isMe).map((m) => m.rideId);
 
@@ -215,14 +243,23 @@ function FareSplitSection({
   // Entry form (first time, or when correcting the fare).
   if (editing) {
     if (!open && !trip.split) {
+      const iBook = myRideIds.includes(trip.suggestedBookerRideId);
       return (
         <section className="card stack" aria-label="Split the fare">
           <p style={{ fontSize: 14 }} className="muted">
-            Booked the cab? Enter the exact fare the app showed and CabSathi works out who pays whom.
+            {iBook
+              ? 'Booked the cab? Enter the exact fare the app showed and CabSathi works out who pays whom.'
+              : `Waiting for ${label(trip.suggestedBookerRideId)} to book and enter the fare. You'll see your share here.`}
           </p>
-          <button type="button" className="btn-green" onClick={() => setOpen(true)}>
-            <ReceiptIndianRupee size={22} /> Split the fare
-          </button>
+          {iBook ? (
+            <button type="button" className="btn-green" onClick={() => setOpen(true)}>
+              <ReceiptIndianRupee size={22} /> Split the fare
+            </button>
+          ) : (
+            <button type="button" style={{ color: 'var(--primary)', fontWeight: 700, alignSelf: 'flex-start' }} onClick={() => setOpen(true)}>
+              Booked it yourself? Enter the fare
+            </button>
+          )}
         </section>
       );
     }
@@ -258,6 +295,14 @@ function FareSplitSection({
             />
           </span>
         </label>
+        {!changeBooker ? (
+          <p style={{ fontSize: 14 }}>
+            Paid by <b>{label(bookedBy)}</b>{' '}
+            <button type="button" style={{ color: 'var(--primary)', fontWeight: 700 }} onClick={() => setChangeBooker(true)}>
+              Someone else booked?
+            </button>
+          </p>
+        ) : (
         <div className="stack" style={{ gap: 6 }}>
           <b style={{ fontSize: 14 }}>Who booked and paid?</b>
           <div className="chips">
@@ -274,6 +319,7 @@ function FareSplitSection({
             ))}
           </div>
         </div>
+        )}
         {error && <p className="error">{error}</p>}
         <button type="button" className="btn-green" onClick={save} disabled={saving}>
           {saving ? 'Working it out…' : 'Show who pays whom'}

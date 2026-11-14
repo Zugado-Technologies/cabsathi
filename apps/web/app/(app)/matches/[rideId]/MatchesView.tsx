@@ -126,7 +126,7 @@ export function MatchesView({ rideId }: { rideId: string }) {
         {ride && (ride.status === 'matched' || received.some((r) => r.status === 'accepted')) && (
           <Link href={`/trip/${rideId}`} className="trip-banner">
             <CircleCheck size={20} />
-            <span style={{ flex: 1 }}>Your shared ride is confirmed. See pickup order and split the fare.</span>
+            <span style={{ flex: 1 }}>Your shared ride is confirmed. See who books the cab and split the fare.</span>
             <ArrowRight size={18} />
           </Link>
         )}
