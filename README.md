@@ -6,7 +6,8 @@ One TypeScript codebase:
 
 | Folder | What it is |
 |---|---|
-| `apps/mobile` | Expo (React Native) app: Android, iOS and web from one codebase |
+| `apps/web` | Website (Next.js): public SEO pages + the logged-in app, mobile-first |
+| `apps/mobile` | Expo (React Native) app for Android/iOS — paused; the website comes first |
 | `apps/api` | Node.js API (Fastify + PostgreSQL/PostGIS) |
 | `packages/shared` | Code used by both: matching rules, fare split, data types, input checks |
 
@@ -20,8 +21,7 @@ cp apps/api/.env.example apps/api/.env
 npm run db:up        # local PostgreSQL + PostGIS in Docker (port 5433)
 npm run db:seed      # demo people with rides tomorrow morning (Noida -> Gurgaon)
 npm run api          # API on http://localhost:4000
-npm run web          # app in the browser on http://localhost:8081
-npm run app          # Expo dev server: scan the QR code with Expo Go on a phone
+npm run web          # website on http://localhost:3000
 ```
 
 Login in local mode: any 10-digit mobile number, OTP is always `123456`.
@@ -31,6 +31,13 @@ To see matches, create a ride from Sector 62, Noida to Cyber Hub, Gurgaon tomorr
 npm test             # matching and fare tests
 npm run typecheck
 ```
+
+## Website pages
+
+| Page | Who it's for |
+|---|---|
+| `/`, `/cab-sharing/[route]`, `/faq`, `/safety` | Public, server-rendered, in the sitemap |
+| `/home`, `/create-ride`, `/matches/[id]`, `/rides`, `/messages`, `/profile` | Logged-in app, not indexed |
 
 ## Matching rules
 
