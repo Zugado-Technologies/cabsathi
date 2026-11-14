@@ -50,9 +50,11 @@ of the two trips and each person's detour is checked against their own limit.
 
 | Setting | Where | What it turns on |
 |---|---|---|
-| `GOOGLE_MAPS_API_KEY` | `apps/api/.env` | Google place search (Places API (New)) and road routes with traffic (Routes API) |
-| `OSRM_URL` | `apps/api/.env` | Our own free routing server, used when there is no Google key |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | `apps/web/.env.local` | The interactive Google map on Create Ride and Matching Rides |
+| `MAPPLS_REST_KEY` | `apps/api/.env` | Mappls (MapmyIndia), used first: place search (Autosuggest), road routes with traffic (Route ETA, then Route ADV), and real road distances between stops for matching (Distance Matrix ETA, cached for 6 hours) |
+| `GOOGLE_MAPS_API_KEY` | `apps/api/.env` | Google place search and routes, used if Mappls is not set or fails |
+| `OSRM_URL` | `apps/api/.env` | Our own free routing server, used when neither of the above works |
+| `NEXT_PUBLIC_MAPPLS_MAP_KEY` | `apps/web/.env.local` | The Mappls map on Create Ride and Matching Rides (whitelist the site address in the Mappls console) |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | `apps/web/.env.local` | Google map, used if there is no Mappls map key |
 
 With none of these set, everything still works locally: place search uses a built-in
 Delhi NCR list, distances are estimated (straight line x 1.3), and the map is a drawn preview.

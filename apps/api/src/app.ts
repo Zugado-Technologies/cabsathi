@@ -174,7 +174,7 @@ export function buildApp() {
       const theirs = await getRide(toRideId);
       if (theirs.userId === me(req)) throw new HttpError(400, 'You cannot request your own ride');
       if (theirs.status !== 'published') throw new HttpError(409, 'This ride is no longer open');
-      const { pair } = describeMatch(mine, theirs);
+      const { pair } = await describeMatch(mine, theirs);
       if (!pair.matched) throw new HttpError(409, 'These rides no longer match');
       const row = await one(
         `INSERT INTO ride_requests (from_ride_id, to_ride_id) VALUES ($1, $2)
@@ -204,7 +204,7 @@ export function buildApp() {
       for (const row of rows) {
         const fromRide = await getRide(row.from_ride_id);
         const toRide = await getRide(row.to_ride_id);
-        const { pair, card } = describeMatch(toRide, fromRide);
+        const { pair, card } = await describeMatch(toRide, fromRide);
         result.push({
           id: row.rq_id,
           status: row.rq_status,

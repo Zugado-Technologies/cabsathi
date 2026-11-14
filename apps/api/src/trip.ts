@@ -12,6 +12,7 @@ import {
 } from '@cabsathi/shared';
 import { one, pool, query } from './db';
 import { RIDE_COLUMNS, USER_COLUMNS, toRide, toUser } from './repo';
+import { roadDistanceFn } from './roads';
 
 /**
  * A trip is the "host" ride plus every ride whose request to it was accepted.
@@ -42,8 +43,12 @@ async function loadMembers(hostId: string) {
 
 type Leg = Pick<Ride, 'id' | 'from' | 'to'>;
 
-function itineraryFor(rides: Leg[]) {
-  return bestGroupItinerary(rides.map((r) => ({ id: r.id, origin: r.from, destination: r.to })));
+async function itineraryFor(rides: Leg[]) {
+  const dist = await roadDistanceFn(rides.flatMap((r) => [r.from, r.to]));
+  return bestGroupItinerary(
+    rides.map((r) => ({ id: r.id, origin: r.from, destination: r.to })),
+    dist,
+  );
 }
 
 async function loadSplit(hostId: string): Promise<FareSplit | null> {
@@ -79,7 +84,7 @@ export async function getTrip(rideId: string, userId: string): Promise<Trip> {
   const members = await loadMembers(hostId);
   if (!members.some((m) => m.ride.userId === userId)) throw new TripError(403, 'You are not part of this trip');
 
-  const it = itineraryFor(members.map((m) => m.ride));
+  const it = await itineraryFor(members.map((m) => m.ride));
   const byId = new Map(members.map((m) => [m.ride.id, m.ride]));
   return {
     hostRideId: hostId,
@@ -107,7 +112,7 @@ export async function saveFareSplit(rideId: string, userId: string, input: FareS
   if (!trip.members.some((m) => m.rideId === input.bookedByRideId)) {
     throw new TripError(400, 'The person who booked must be in this trip');
   }
-  const it = itineraryFor(trip.members.map((m) => ({ id: m.rideId, from: m.from, to: m.to })));
+  const it = await itineraryFor(trip.members.map((m) => ({ id: m.rideId, from: m.from, to: m.to })));
   const shares = splitActualFare(input.total, it);
   const km = Object.fromEntries(Object.entries(segmentKm(it)).map(([id, v]) => [id, round(v)]));
   const payments = settle(shares, input.bookedByRideId);

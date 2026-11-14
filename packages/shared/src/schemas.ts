@@ -72,7 +72,7 @@ export interface Ride {
   polyline: string | null;
 }
 
-export type RouteSource = 'google' | 'osrm' | 'estimate';
+export type RouteSource = 'mappls' | 'google' | 'osrm' | 'estimate';
 
 export interface RideEstimate {
   distanceKm: number;

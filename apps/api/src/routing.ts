@@ -7,6 +7,7 @@ import {
   type RideEstimate,
 } from '@cabsathi/shared';
 import { env } from './env';
+import { mapplsRoute } from './mappls';
 
 type Route = { distanceKm: number; durationMin: number; polyline: string | null };
 
@@ -55,11 +56,12 @@ async function osrmRoute(from: LatLng, to: LatLng, baseUrl: string): Promise<Rou
 }
 
 /**
- * Trip distance and time: Google if a key is set, else our OSRM server,
+ * Trip distance and time: Mappls, then Google, then our OSRM server (whichever is set),
  * else an estimate from straight-line distance. Falls back if a service fails.
  */
 export async function estimateTrip(from: LatLng, to: LatLng): Promise<RideEstimate> {
   const tries: [RideEstimate['source'], () => Promise<Route>][] = [];
+  if (env.mapplsKey) tries.push(['mappls', () => mapplsRoute(from, to, env.mapplsKey!)]);
   if (env.googleMapsKey) tries.push(['google', () => googleRoute(from, to, env.googleMapsKey!)]);
   if (env.osrmUrl) tries.push(['osrm', () => osrmRoute(from, to, env.osrmUrl!)]);
 

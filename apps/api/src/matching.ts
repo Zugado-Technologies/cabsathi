@@ -8,13 +8,17 @@ import {
   type Ride,
 } from '@cabsathi/shared';
 import { query } from './db';
+import { roadDistanceFn } from './roads';
 import { RIDE_COLUMNS, USER_COLUMNS, toRide, toUser } from './repo';
 
 /** How "my ride" and "their ride" fit together, as shown on a match card. */
-export function describeMatch(mine: Ride, theirs: Ride) {
+export async function describeMatch(mine: Ride, theirs: Ride) {
+  // Real road distances between the 4 stops (cached), so detours use the same roads as the solo trips.
+  const dist = await roadDistanceFn([mine.from, mine.to, theirs.from, theirs.to]);
   const pair = evaluatePair(
     { id: mine.id, origin: mine.from, destination: mine.to, distanceKm: mine.distanceKm, departAt: mine.departAt },
     { id: theirs.id, origin: theirs.from, destination: theirs.to, distanceKm: theirs.distanceKm, departAt: theirs.departAt },
+    dist,
   );
   const sharedFare = estimateSoloFare(pair.itinerary.totalKm);
   const shares = splitBySegments(sharedFare, pair.itinerary, {
@@ -82,10 +86,11 @@ export async function findMatches(myRide: Ride, myGender: string | null): Promis
     ],
   );
 
+  const described = await Promise.all(
+    rows.map(async (row) => ({ row, theirs: toRide(row), ...(await describeMatch(myRide, toRide(row))) })),
+  );
   const cards: MatchCard[] = [];
-  for (const row of rows) {
-    const theirs = toRide(row);
-    const { pair, card } = describeMatch(myRide, theirs);
+  for (const { row, theirs, pair, card } of described) {
     if (!pair.matched) continue;
     cards.push({ ...card, ride: theirs, user: toUser(row), requestStatus: row.request_status ?? null });
   }

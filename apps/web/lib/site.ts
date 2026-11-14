@@ -10,3 +10,5 @@ export const SITE_DESCRIPTION =
 export const GOOGLE_MAPS_BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 /** Map ID for advanced markers; 'DEMO_MAP_ID' works for development. */
 export const GOOGLE_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID ?? 'DEMO_MAP_ID';
+/** Mappls (MapmyIndia) map key, whitelisted for this website. Tried before Google. */
+export const MAPPLS_MAP_KEY = process.env.NEXT_PUBLIC_MAPPLS_MAP_KEY ?? '';

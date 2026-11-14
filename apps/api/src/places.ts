@@ -1,18 +1,29 @@
 import { searchPlaces as searchLocal, type Place, type PlaceSuggestion } from '@cabsathi/shared';
 import { env } from './env';
+import { mapplsPlace, mapplsSearch } from './mappls';
 
 const TIMEOUT_MS = 5000;
 /** Bias results towards Delhi NCR. */
 const NCR_BIAS = { circle: { center: { latitude: 28.58, longitude: 77.2 }, radius: 50000 } };
 
 /**
- * Place search. With a Google key: Places API (New) Autocomplete (pass the same
+ * Place search. Mappls Autosuggest first if its key is set. With a Google key: Places API (New) Autocomplete (pass the same
  * sessionToken to `placeDetails` so Google bills it as one session).
  * Without a key: the built-in NCR list, which already has coordinates.
  */
 export async function searchPlaces(q: string, sessionToken?: string): Promise<PlaceSuggestion[]> {
   const input = q.trim();
-  if (!env.googleMapsKey || input.length < 2) return searchLocal(input);
+  if (input.length < 2) return searchLocal(input);
+
+  if (env.mapplsKey) {
+    try {
+      const found = await mapplsSearch(input, env.mapplsKey);
+      if (found.length) return found;
+    } catch (err) {
+      console.warn('[places] Mappls search failed:', (err as Error).message);
+    }
+  }
+  if (!env.googleMapsKey) return searchLocal(input);
 
   try {
     const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
@@ -46,8 +57,17 @@ export async function searchPlaces(q: string, sessionToken?: string): Promise<Pl
   }
 }
 
-/** Coordinates for a Google place id. */
+/** Coordinates for a place id: `mappls:<eLoc>` or a Google place id. */
 export async function placeDetails(placeId: string, sessionToken?: string): Promise<Place | null> {
+  if (placeId.startsWith('mappls:')) {
+    if (!env.mapplsKey) return null;
+    try {
+      return await mapplsPlace(placeId.slice('mappls:'.length), env.mapplsKey);
+    } catch (err) {
+      console.warn('[places] Mappls place lookup failed:', (err as Error).message);
+      return null;
+    }
+  }
   if (!env.googleMapsKey) return null;
   const qs = sessionToken ? `?sessionToken=${encodeURIComponent(sessionToken)}` : '';
   const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${qs}`, {
