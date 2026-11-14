@@ -3,6 +3,7 @@ import jwt from '@fastify/jwt';
 import {
   createRideSchema,
   estimateRideSchema,
+  fareSplitSchema,
   sendOtpSchema,
   updateProfileSchema,
   verifyOtpSchema,
@@ -17,6 +18,7 @@ import { describeMatch, findMatches } from './matching';
 import { placeDetails, searchPlaces } from './places';
 import { RIDE_COLUMNS, USER_COLUMNS, toRide, toUser } from './repo';
 import { estimateTrip } from './routing';
+import { TripError, getTrip, saveFareSplit, setPaid } from './trip';
 
 class HttpError extends Error {
   constructor(public status: number, message: string) {
@@ -54,7 +56,7 @@ export function buildApp() {
     if (err instanceof ZodError) {
       return reply.code(400).send({ error: err.issues[0]?.message ?? 'Invalid input' });
     }
-    if (err instanceof HttpError) return reply.code(err.status).send({ error: err.message });
+    if (err instanceof HttpError || err instanceof TripError) return reply.code(err.status).send({ error: err.message });
     const { statusCode, message } = err as { statusCode?: number; message?: string };
     if (statusCode && statusCode < 500) return reply.code(statusCode).send({ error: message ?? 'Bad request' });
     app.log.error(err);
@@ -214,6 +216,19 @@ export function buildApp() {
         });
       }
       return result;
+    });
+
+    // ---- Shared trip: order of stops and the real fare split ----------------
+    auth.get('/rides/:id/trip', async (req) => getTrip((req.params as { id: string }).id, me(req)));
+
+    auth.put('/rides/:id/trip/fare', async (req) =>
+      saveFareSplit((req.params as { id: string }).id, me(req), parse(fareSplitSchema, req.body)),
+    );
+
+    auth.post('/rides/:id/trip/payments/:fromRideId', async (req) => {
+      const { id, fromRideId } = req.params as { id: string; fromRideId: string };
+      const { paid } = (req.body ?? {}) as { paid?: boolean };
+      return setPaid(id, me(req), fromRideId, paid !== false);
     });
 
     const answer = (status: 'accepted' | 'rejected') => async (req: FastifyRequest) => {

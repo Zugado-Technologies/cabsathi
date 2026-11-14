@@ -48,7 +48,7 @@ export default function Rides() {
           rides.map((r) => {
             const s = STATUS[r.status];
             return (
-              <Link key={r.id} href={`/matches/${r.id}`} className="card stack">
+              <Link key={r.id} href={r.status === 'matched' ? `/trip/${r.id}` : `/matches/${r.id}`} className="card stack">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <b style={{ flex: 1, fontSize: 16 }}>
                     {dayLabel(r.departAt)}, {timeLabel(r.departAt)}

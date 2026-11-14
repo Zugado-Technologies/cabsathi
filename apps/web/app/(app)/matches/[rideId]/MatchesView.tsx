@@ -1,7 +1,8 @@
 'use client';
 
 import type { MatchCard as Match, ReceivedRequest, Ride } from '@cabsathi/shared';
-import { MailOpen, RefreshCw, Search, Sparkles } from 'lucide-react';
+import { ArrowRight, CircleCheck, MailOpen, RefreshCw, Search, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RouteMap, type MapPoint } from '@/components/RouteMap';
 import { MatchCard } from '@/components/MatchCard';
@@ -121,6 +122,13 @@ export function MatchesView({ rideId }: { rideId: string }) {
             Your ride: {ride.from.name} → {ride.to.name} · {dayLabel(ride.departAt)}, {timeLabel(ride.departAt)}
             {ride.status !== 'published' ? ` · ${ride.status}` : ''}
           </p>
+        )}
+        {ride && (ride.status === 'matched' || received.some((r) => r.status === 'accepted')) && (
+          <Link href={`/trip/${rideId}`} className="trip-banner">
+            <CircleCheck size={20} />
+            <span style={{ flex: 1 }}>Your shared ride is confirmed. See pickup order and split the fare.</span>
+            <ArrowRight size={18} />
+          </Link>
         )}
         {newCount > 0 && (
           <button type="button" className="new-banner" onClick={() => setNewCount(0)} aria-live="polite">

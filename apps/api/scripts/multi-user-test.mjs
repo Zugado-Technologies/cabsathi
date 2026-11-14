@@ -101,5 +101,26 @@ try {
 }
 check('Requesting a full ride is refused', refused);
 
+// Fare split: Amit's cab now has Amit, Bina and Chirag.
+const trip = await call(users.amit.token, 'GET', `/rides/${users.amit.ride.id}/trip`);
+check('Trip has 3 people', trip.members.length === 3);
+check('Everyone is picked up before being dropped', trip.members.every((m) => {
+  const order = trip.stops.map((s) => `${s.kind}:${s.rideId}`);
+  return order.indexOf(`pickup:${m.rideId}`) < order.indexOf(`drop:${m.rideId}`);
+}));
+check('Suggested booker is the person dropped last', trip.suggestedBookerRideId === trip.stops.at(-1).rideId);
+const saved = await call(users.amit.token, 'PUT', `/rides/${users.amit.ride.id}/trip/fare`, {
+  total: 613, provider: 'ola', bookedByRideId: trip.suggestedBookerRideId,
+});
+const sum = Object.values(saved.split.shares).reduce((a, b) => a + b, 0);
+check('Shares add up exactly to the fare (₹613)', sum === 613);
+check('Everyone except the booker pays the booker', saved.split.payments.length === 2 &&
+  saved.split.payments.every((p) => p.toRideId === trip.suggestedBookerRideId && p.fromRideId !== p.toRideId));
+const chiragView = await call(users.chirag.token, 'GET', `/rides/${users.chirag.ride.id}/trip`);
+check('Other members see the same split', chiragView.split?.total === 613);
+let outsiderBlocked = false;
+try { await call(users.esha.token, 'GET', `/rides/${users.amit.ride.id}/trip`); } catch { outsiderBlocked = true; }
+check('People outside the trip cannot see it', outsiderBlocked);
+
 console.log(`\n${failures === 0 ? 'All checks passed' : `${failures} check(s) failed`}`);
 process.exit(failures ? 1 : 0);

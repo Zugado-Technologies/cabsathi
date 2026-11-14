@@ -1,11 +1,13 @@
 import type {
   CreateRideInput,
+  FareSplitInput,
   MatchCard,
   Place,
   PlaceSuggestion,
   ReceivedRequest,
   Ride,
   RideEstimate,
+  Trip,
   UpdateProfileInput,
   UserPublic,
 } from '@cabsathi/shared';
@@ -81,4 +83,8 @@ export const api = {
   receivedRequests: () => call<ReceivedRequest[]>('GET', '/requests/received'),
   acceptRequest: (id: string) => call('POST', `/requests/${id}/accept`),
   rejectRequest: (id: string) => call('POST', `/requests/${id}/reject`),
+  trip: (rideId: string) => call<Trip>('GET', `/rides/${rideId}/trip`),
+  saveFare: (rideId: string, input: FareSplitInput) => call<Trip>('PUT', `/rides/${rideId}/trip/fare`, input),
+  setPaid: (rideId: string, fromRideId: string, paid: boolean) =>
+    call<Trip>('POST', `/rides/${rideId}/trip/payments/${fromRideId}`, { paid }),
 };

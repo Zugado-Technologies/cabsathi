@@ -119,3 +119,65 @@ export interface ReceivedRequest {
   toRide: Ride;
   match: Omit<MatchCard, 'ride' | 'user' | 'requestStatus'> | null;
 }
+
+// ---- Shared trip and fare split ---------------------------------------------
+
+export const PROVIDERS = ['uber', 'ola', 'rapido', 'indrive', 'other'] as const;
+export type Provider = (typeof PROVIDERS)[number];
+
+export const fareSplitSchema = z.object({
+  /** The exact fare the cab app showed or charged, in whole rupees. */
+  total: z
+    .number({ invalid_type_error: 'Enter the fare in rupees' })
+    .int('Enter whole rupees')
+    .min(20, 'That fare looks too low')
+    .max(20000, 'That fare looks too high'),
+  provider: z.enum(PROVIDERS),
+  /** Ride id of the person who booked (and paid for) the cab. */
+  bookedByRideId: z.string().uuid(),
+});
+export type FareSplitInput = z.infer<typeof fareSplitSchema>;
+
+export interface TripMember {
+  rideId: string;
+  user: UserPublic;
+  from: Place;
+  to: Place;
+  isMe: boolean;
+}
+
+export interface TripStop {
+  rideId: string;
+  kind: 'pickup' | 'drop';
+  place: Place;
+}
+
+export interface TripPayment {
+  fromRideId: string;
+  toRideId: string;
+  amount: number;
+  paidAt: string | null;
+}
+
+export interface FareSplit {
+  provider: Provider;
+  total: number;
+  bookedByRideId: string;
+  /** Each rider's share; adds up to `total`. */
+  shares: Record<string, number>;
+  /** Km each rider is charged for (each stretch shared by who is in the cab). */
+  km: Record<string, number>;
+  payments: TripPayment[];
+  updatedAt: string;
+}
+
+export interface Trip {
+  hostRideId: string;
+  departAt: string;
+  members: TripMember[];
+  stops: TripStop[];
+  totalKm: number;
+  /** Person dropped last — suggested to book, so the cab app trip ends with them. */
+  suggestedBookerRideId: string;
+  split: FareSplit | null;
+}

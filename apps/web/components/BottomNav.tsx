@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 const TABS = [
   { href: '/home', label: 'Home', Icon: House, match: ['/home', '/create-ride'] },
-  { href: '/rides', label: 'Rides', Icon: Car, match: ['/rides', '/matches'] },
+  { href: '/rides', label: 'Rides', Icon: Car, match: ['/rides', '/matches', '/trip'] },
   { href: '/messages', label: 'Messages', Icon: MessageSquareMore, match: ['/messages'] },
   { href: '/profile', label: 'Profile', Icon: User, match: ['/profile'] },
 ];

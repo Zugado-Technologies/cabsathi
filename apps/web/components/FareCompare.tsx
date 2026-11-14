@@ -17,7 +17,12 @@ export function FareCompare({
   minutes,
   from,
   to,
+  title = 'Compare fares for this trip',
+  showShared = true,
 }: {
+  title?: string;
+  /** The 'share on CabSathi' line assumes two people; hide it for a known group. */
+  showShared?: boolean;
   km: number;
   minutes: number;
   from?: LatLng & { name?: string };
@@ -29,9 +34,10 @@ export function FareCompare({
   return (
     <section className="card stack" aria-labelledby="fare-compare-title">
       <h3 id="fare-compare-title" className="label" style={{ fontSize: 16 }}>
-        Compare fares for this trip
+        {title}
       </h3>
 
+      {showShared && (
       <div
         style={{
           display: 'flex',
@@ -52,6 +58,7 @@ export function FareCompare({
           ~₹{sharedEach(cheapest.min)}–{sharedEach(cheapest.max)} each
         </b>
       </div>
+      )}
 
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
         {fares.map((f) => (
