@@ -4,7 +4,7 @@ import { env } from './env';
 // Return numeric columns as JS numbers instead of strings.
 pg.types.setTypeParser(1700, (v) => (v === null ? null : Number(v)));
 
-export const pool = new pg.Pool({ connectionString: env.databaseUrl });
+export const pool = new pg.Pool({ connectionString: env.databaseUrl, max: env.dbPoolMax, idleTimeoutMillis: 10_000 });
 
 export async function query<T extends pg.QueryResultRow = any>(
   text: string,

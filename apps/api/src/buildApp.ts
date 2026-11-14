@@ -10,22 +10,18 @@ import {
   verifyOtpSchema,
   type ReceivedRequest,
 } from '@cabsathi/shared';
-import Fastify, { type FastifyRequest } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { ZodError, type ZodSchema } from 'zod';
 import { requireAuth, sendOtp, verifyOtp } from './auth';
 import { one, pool, query } from './db';
 import { env } from './env';
+import { HttpError } from './errors';
 import { describeMatch, findMatches } from './matching';
 import { placeDetails, reversePlace, searchPlaces } from './places';
 import { RIDE_COLUMNS, USER_COLUMNS, toRide, toUser } from './repo';
 import { estimateTrip } from './routing';
 import { TripError, getTrip, saveFareSplit, setPaid } from './trip';
 
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
 
 const parse = <T>(schema: ZodSchema<T>, data: unknown): T => schema.parse(data);
 const me = (req: FastifyRequest) => req.user.sub;
@@ -48,9 +44,10 @@ async function getOwnRide(id: string, userId: string) {
   return ride;
 }
 
-export function buildApp() {
-  const app = Fastify({ logger: { level: 'info' } });
-  app.register(cors, { origin: true });
+/** Adds every route to a Fastify app (created in server.ts, which Vercel uses as the entry). */
+export function buildApp(app: FastifyInstance = Fastify({ logger: { level: 'info' } })) {
+  // Only our own websites may call the API from a browser (any site while developing locally).
+  app.register(cors, { origin: env.corsOrigins.length ? env.corsOrigins : true });
   app.register(jwt, { secret: env.jwtSecret, sign: { expiresIn: '30d' } });
 
   app.setErrorHandler((err, _req, reply) => {

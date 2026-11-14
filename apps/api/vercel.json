@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "cd ../.. && npm ci --workspace @cabsathi/api --workspace @cabsathi/shared --include-workspace-root",
+  "buildCommand": "npm run build:vercel"
+}

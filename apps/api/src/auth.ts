@@ -2,6 +2,7 @@ import { createHash, randomInt } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { one, query } from './db';
 import { env } from './env';
+import { HttpError } from './errors';
 
 const DEV_CODE = '123456';
 const OTP_TTL_MIN = 5;
@@ -11,7 +12,9 @@ const hash = (phone: string, code: string) =>
   createHash('sha256').update(`${phone}:${code}:${env.jwtSecret}`).digest('hex');
 
 export async function sendOtp(phone: string) {
-  const code = env.otpDevMode ? DEV_CODE : String(randomInt(100000, 1000000));
+  // Test numbers get the fixed code even on a hosted site, until real SMS is set up.
+  const testCode = env.otpDevMode || env.otpTestPhones.has(phone);
+  const code = testCode ? DEV_CODE : String(randomInt(100000, 1000000));
   await query(
     `INSERT INTO otp_codes (phone, code_hash, expires_at, attempts)
      VALUES ($1, $2, now() + make_interval(mins => $3), 0)
@@ -19,11 +22,11 @@ export async function sendOtp(phone: string) {
        SET code_hash = EXCLUDED.code_hash, expires_at = EXCLUDED.expires_at, attempts = 0`,
     [phone, hash(phone, code), OTP_TTL_MIN],
   );
-  if (env.otpDevMode) {
-    console.log(`[dev] OTP for ${phone} is ${code}`);
+  if (testCode) {
+    if (env.otpDevMode) console.log(`[dev] OTP for ${phone} is ${code}`);
   } else {
     // TODO: send through the SMS provider (MSG91) once DLT registration is done.
-    throw new Error('SMS provider not configured');
+    throw new HttpError(503, 'Login by SMS is not available yet. Ask the CabSathi team to add your number for testing.');
   }
 }
 
