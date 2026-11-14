@@ -68,3 +68,43 @@ against each company's published rates before launch. No company gives live pric
 | Real service | Local stand-in |
 |---|---|
 | SMS OTP (MSG91 + DLT) | Fixed code `123456` |
+
+## Hosting on Vercel
+
+Two Vercel projects from this one repository:
+
+| Project | Root Directory | Notes |
+|---|---|---|
+| `cabsathi-web` | `apps/web` | Next.js, detected automatically (`apps/web/vercel.json`) |
+| `cabsathi-api` | `apps/api` | Builds one bundled function with `npm run build:vercel` (`apps/api/vercel.json`) |
+
+Keep "Include files outside the root directory" switched on (the default) for both.
+Set the Functions region to Mumbai (`bom1`) for both.
+
+**Database:** a Postgres with PostGIS, e.g. Neon from the Vercel Marketplace (Mumbai or
+Singapore region). Run the migrations once, and again whenever a new file is added to
+`apps/api/migrations`:
+
+```bash
+DATABASE_URL="<the database URL>" npm run migrate -w @cabsathi/api
+```
+
+**Environment variables for `cabsathi-api`:**
+
+| Name | Value |
+|---|---|
+| `DATABASE_URL` | The pooled database URL |
+| `JWT_SECRET` | A long random string (`openssl rand -hex 32`) |
+| `OTP_DEV_MODE` | `false` |
+| `OTP_TEST_PHONES` | Test numbers that may log in with 123456 until SMS is set up, comma-separated |
+| `CORS_ORIGINS` | The website address, e.g. `https://cabsathi-web.vercel.app` |
+| `MAPPLS_REST_KEY` | Mappls key |
+| `DB_POOL_MAX` | `3` |
+
+**Environment variables for `cabsathi-web`:**
+
+| Name | Value |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | The API address, e.g. `https://cabsathi-api.vercel.app` |
+| `NEXT_PUBLIC_SITE_URL` | The website address |
+| `NEXT_PUBLIC_MAPPLS_MAP_KEY` | Mappls key (whitelist the website address in the Mappls console) |
