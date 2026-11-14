@@ -10,9 +10,10 @@
   "scripts": {
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
+    "db:seed": "npm run seed -w @cabsathi/api",
     "api": "npm run dev -w @cabsathi/api",
-    "app": "npm run start -w @cabsathi/mobile",
     "web": "npm run web -w @cabsathi/mobile",
+    "app": "npm run start -w @cabsathi/mobile",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
