@@ -1,0 +1,22 @@
+{
+  "name": "cabsathi",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CabSathi - share a cab with people going your way",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "api": "npm run dev -w @cabsathi/api",
+    "app": "npm run start -w @cabsathi/mobile",
+    "web": "npm run web -w @cabsathi/mobile",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

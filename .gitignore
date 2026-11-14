@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.expo/
+web-build/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage/
+.idea/
+.vscode/
+ios/
+android/
+.claude/settings.local.json
