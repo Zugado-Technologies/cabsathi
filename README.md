@@ -71,15 +71,17 @@ against each company's published rates before launch. No company gives live pric
 
 ## Hosting on Vercel
 
-Two Vercel projects from this one repository:
+One Vercel project with two services, set up in the root [`vercel.json`](vercel.json):
 
-| Project | Root Directory | Notes |
+| Service | Folder | Public path |
 |---|---|---|
-| `cabsathi-web` | `apps/web` | Next.js, detected automatically (`apps/web/vercel.json`) |
-| `cabsathi-api` | `apps/api` | Builds one bundled function with `npm run build:vercel` (`apps/api/vercel.json`) |
+| `web` | `apps/web` | `/` (everything not under `/api`) |
+| `api` | `apps/api` | `/api/...` (the API keeps the `/api` prefix and strips it itself) |
 
-Keep "Include files outside the root directory" switched on (the default) for both.
-Set the Functions region to Mumbai (`bom1`) for both.
+The website calls the API on the same domain (`/api`), so no CORS setup or extra
+URL is needed. Locally, Next.js forwards `/api` to the API on port 4000.
+Import the repository with the Root Directory left as the repo root.
+Set the Functions region to Mumbai (`bom1`).
 
 **Database:** a Postgres with PostGIS, e.g. Neon from the Vercel Marketplace (Mumbai or
 Singapore region). Run the migrations once, and again whenever a new file is added to
@@ -89,7 +91,7 @@ Singapore region). Run the migrations once, and again whenever a new file is add
 DATABASE_URL="<the database URL>" npm run migrate -w @cabsathi/api
 ```
 
-**Environment variables for `cabsathi-api`:**
+**Environment variables (one project, shared by both services):**
 
 | Name | Value |
 |---|---|
@@ -97,14 +99,8 @@ DATABASE_URL="<the database URL>" npm run migrate -w @cabsathi/api
 | `JWT_SECRET` | A long random string (`openssl rand -hex 32`) |
 | `OTP_DEV_MODE` | `false` |
 | `OTP_TEST_PHONES` | Test numbers that may log in with 123456 until SMS is set up, comma-separated |
-| `CORS_ORIGINS` | The website address, e.g. `https://cabsathi-web.vercel.app` |
+| `CORS_ORIGINS` | Optional: other websites allowed to call the API (not needed for the CabSathi site itself) |
 | `MAPPLS_REST_KEY` | Mappls key |
 | `DB_POOL_MAX` | `3` |
-
-**Environment variables for `cabsathi-web`:**
-
-| Name | Value |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | The API address, e.g. `https://cabsathi-api.vercel.app` |
-| `NEXT_PUBLIC_SITE_URL` | The website address |
+| `NEXT_PUBLIC_SITE_URL` | The website address (for the sitemap and links) |
 | `NEXT_PUBLIC_MAPPLS_MAP_KEY` | Mappls key (whitelist the website address in the Mappls console) |

@@ -1,5 +1,10 @@
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+/**
+ * The API is served on the same domain under /api: on Vercel by the `api` service,
+ * locally through the rewrite in next.config.ts. Set NEXT_PUBLIC_API_URL only to use
+ * an API on another address.
+ */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 export const SITE_NAME = 'CabSathi';
 export const SITE_TAGLINE = 'Share your cab, split the fare';
