@@ -27,6 +27,7 @@ export function PlaceField({
   const [text, setText] = useState(value?.name ?? '');
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<PlaceSuggestion[]>([]);
+  const [searched, setSearched] = useState('');
   const [error, setError] = useState<string | null>(null);
   // One Google "session" from typing to picking a place keeps search billing low.
   const session = useRef<string | null>(null);
@@ -39,8 +40,14 @@ export function PlaceField({
     const t = setTimeout(() => {
       api
         .places(text === value?.name ? '' : text, session.current!)
-        .then(setResults)
-        .catch(() => setResults([]));
+        .then((r) => {
+          setResults(r);
+          setSearched(text);
+        })
+        .catch(() => {
+          setResults([]);
+          setSearched(text);
+        });
     }, 250);
     return () => clearTimeout(t);
   }, [text, open, value?.name]);
@@ -96,6 +103,11 @@ export function PlaceField({
         )}
       </div>
       {error && <p className="error" style={{ marginTop: 4 }}>{error}</p>}
+      {open && results.length === 0 && searched.trim().length >= 2 && searched === text && text !== value?.name && (
+        <div className="dropdown" role="status" style={{ padding: '10px 12px', fontSize: 14 }}>
+          <span className="muted">No places found for “{searched}”. Try a nearby landmark or sector.</span>
+        </div>
+      )}
       {open && results.length > 0 && (
         <div className="dropdown" role="listbox">
           {results.map((s) => (

@@ -16,7 +16,8 @@
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "web:build": "npm run build -w @cabsathi/web",
-    "expo:web": "npm run web -w @cabsathi/mobile"
+    "expo:web": "npm run web -w @cabsathi/mobile",
+    "test:multi-user": "node apps/api/scripts/multi-user-test.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -207,3 +207,11 @@ button.field { justify-content: flex-start; text-align: left; }
 .footer h4 { color: #fff; margin: 0 0 10px; font-size: 15px; }
 .footer ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 .phone-preview { justify-self: center; width: min(320px, 100%); border-radius: 28px; border: 8px solid #fff; background: var(--bg); box-shadow: 0 20px 40px rgba(30,58,138,.18); overflow: hidden; }
+
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.new-banner {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  background: var(--green-light); color: var(--green-dark); border: 1px solid #bfe7d3;
+  border-radius: 12px; padding: 10px; font-weight: 700; font-size: 14px;
+}

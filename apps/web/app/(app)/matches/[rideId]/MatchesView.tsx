@@ -1,8 +1,8 @@
 'use client';
 
 import type { MatchCard as Match, ReceivedRequest, Ride } from '@cabsathi/shared';
-import { MailOpen, RefreshCw, Search, Settings } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { MailOpen, RefreshCw, Search, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RouteMap, type MapPoint } from '@/components/RouteMap';
 import { MatchCard } from '@/components/MatchCard';
 import { Empty } from '@/components/ui';
@@ -12,6 +12,9 @@ import { dayLabel, timeLabel } from '@/lib/format';
 
 type Tab = 'nearby' | 'received';
 
+/** How often to look for new matches and requests while the page is open. */
+const POLL_MS = 15_000;
+
 export function MatchesView({ rideId }: { rideId: string }) {
   const [tab, setTab] = useState<Tab>('nearby');
   const [ride, setRide] = useState<Ride | null>(null);
@@ -19,23 +22,56 @@ export function MatchesView({ rideId }: { rideId: string }) {
   const [received, setReceived] = useState<ReceivedRequest[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [newCount, setNewCount] = useState(0);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  // Ids seen so far, to spot new matches and requests between refreshes.
+  const seen = useRef<Set<string> | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [r, m, rq] = await Promise.all([api.ride(rideId), api.matches(rideId), api.receivedRequests()]);
-      setRide(r);
-      setMatches(m);
-      setReceived(rq.filter((x) => x.toRide.id === rideId));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-      setMatches([]);
-    }
-  }, [rideId]);
+  const load = useCallback(
+    async (quiet = false) => {
+      try {
+        const [r, m, rq] = await Promise.all([api.ride(rideId), api.matches(rideId), api.receivedRequests()]);
+        const mine = rq.filter((x) => x.toRide.id === rideId);
+        const ids = [...m.map((x) => `m${x.ride.id}`), ...mine.map((x) => `r${x.id}`)];
+        if (seen.current) {
+          const fresh = ids.filter((id) => !seen.current!.has(id)).length;
+          if (fresh) setNewCount((n) => n + fresh);
+        }
+        seen.current = new Set([...(seen.current ?? []), ...ids]);
+        setRide(r);
+        setMatches(m);
+        setReceived(mine);
+        setUpdatedAt(new Date());
+        setError(null);
+      } catch (e) {
+        // Background refreshes stay quiet; the last good list stays on screen.
+        if (!quiet) {
+          setError((e as Error).message);
+          setMatches((prev) => prev ?? []);
+        }
+      }
+    },
+    [rideId],
+  );
 
   useEffect(() => {
     load();
+    const tick = () => document.visibilityState === 'visible' && load(true);
+    const timer = setInterval(tick, POLL_MS);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
   }, [load]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    setNewCount(0);
+    await load();
+    setRefreshing(false);
+  };
 
   const act = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
@@ -67,8 +103,8 @@ export function MatchesView({ rideId }: { rideId: string }) {
         title="Matching Rides"
         back="/rides"
         right={
-          <button type="button" className="icon-btn" aria-label="Refresh matches" onClick={load}>
-            {busy === 'refresh' ? <RefreshCw size={24} /> : <Settings size={24} fill="#fff" fillOpacity={0.2} />}
+          <button type="button" className="icon-btn" aria-label="Refresh matches" onClick={refresh} disabled={refreshing}>
+            <RefreshCw size={24} className={refreshing ? 'spin' : undefined} />
           </button>
         }
       />
@@ -86,7 +122,18 @@ export function MatchesView({ rideId }: { rideId: string }) {
             {ride.status !== 'published' ? ` · ${ride.status}` : ''}
           </p>
         )}
+        {newCount > 0 && (
+          <button type="button" className="new-banner" onClick={() => setNewCount(0)} aria-live="polite">
+            <Sparkles size={16} />
+            {newCount === 1 ? '1 new match or request' : `${newCount} new matches or requests`}
+          </button>
+        )}
         {ride && <RouteMap points={mapPoints} polyline={ride.polyline} height={150} />}
+        {updatedAt && (
+          <p className="faint" style={{ fontSize: 12, marginTop: -6 }}>
+            Updates automatically · last checked {updatedAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
+          </p>
+        )}
         {error && <p className="error">{error}</p>}
 
         {matches === null ? (

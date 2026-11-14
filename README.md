@@ -29,6 +29,7 @@ To see matches, create a ride from Sector 62, Noida to Cyber Hub, Gurgaon tomorr
 
 ```bash
 npm test             # matching and fare tests
+npm run test:multi-user   # 7 test users against the running API: who matches whom, gender filter, seats
 npm run typecheck
 ```
 
