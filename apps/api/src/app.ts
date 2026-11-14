@@ -55,8 +55,8 @@ export function buildApp() {
       return reply.code(400).send({ error: err.issues[0]?.message ?? 'Invalid input' });
     }
     if (err instanceof HttpError) return reply.code(err.status).send({ error: err.message });
-    const status = (err as { statusCode?: number }).statusCode;
-    if (status && status < 500) return reply.code(status).send({ error: err.message });
+    const { statusCode, message } = err as { statusCode?: number; message?: string };
+    if (statusCode && statusCode < 500) return reply.code(statusCode).send({ error: message ?? 'Bad request' });
     app.log.error(err);
     return reply.code(500).send({ error: 'Something went wrong' });
   });
