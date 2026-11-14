@@ -2,6 +2,7 @@ import type {
   CreateRideInput,
   MatchCard,
   Place,
+  PlaceSuggestion,
   ReceivedRequest,
   Ride,
   RideEstimate,
@@ -66,7 +67,10 @@ export const api = {
     call<{ token: string; user: Me }>('POST', '/auth/verify-otp', { phone, code }),
   me: () => call<Me>('GET', '/me'),
   updateMe: (input: UpdateProfileInput) => call<Me>('PATCH', '/me', input),
-  places: (q: string) => call<Place[]>('GET', `/places?q=${encodeURIComponent(q)}`),
+  places: (q: string, session?: string) =>
+    call<PlaceSuggestion[]>('GET', `/places?q=${encodeURIComponent(q)}${session ? `&session=${session}` : ''}`),
+  placeDetails: (id: string, session?: string) =>
+    call<Place>('GET', `/places/${encodeURIComponent(id)}${session ? `?session=${session}` : ''}`),
   estimate: (from: Place, to: Place) => call<RideEstimate>('POST', '/rides/estimate', { from, to }),
   createRide: (input: CreateRideInput) => call<Ride>('POST', '/rides', input),
   myRides: () => call<Ride[]>('GET', '/rides/mine'),

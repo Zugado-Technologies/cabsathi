@@ -3,7 +3,6 @@ import jwt from '@fastify/jwt';
 import {
   createRideSchema,
   estimateRideSchema,
-  searchPlaces,
   sendOtpSchema,
   updateProfileSchema,
   verifyOtpSchema,
@@ -15,6 +14,7 @@ import { requireAuth, sendOtp, verifyOtp } from './auth';
 import { one, pool, query } from './db';
 import { env } from './env';
 import { describeMatch, findMatches } from './matching';
+import { placeDetails, searchPlaces } from './places';
 import { RIDE_COLUMNS, USER_COLUMNS, toRide, toUser } from './repo';
 import { estimateTrip } from './routing';
 
@@ -97,8 +97,15 @@ export function buildApp() {
     });
 
     auth.get('/places', async (req) => {
-      const q = (req.query as { q?: string }).q ?? '';
-      return searchPlaces(q);
+      const { q = '', session } = req.query as { q?: string; session?: string };
+      return searchPlaces(q.slice(0, 100), session);
+    });
+
+    auth.get('/places/:id', async (req) => {
+      const { session } = req.query as { session?: string };
+      const place = await placeDetails((req.params as { id: string }).id, session);
+      if (!place) throw new HttpError(404, 'Place not found');
+      return place;
     });
 
     auth.post('/rides/estimate', async (req) => {
@@ -115,14 +122,14 @@ export function buildApp() {
       if (est.distanceKm < 1) throw new HttpError(400, 'From and To are too close');
       const row = await one(
         `INSERT INTO rides (user_id, from_name, from_point, to_name, to_point, depart_at,
-                            seats, gender_pref, distance_km, duration_min, solo_fare)
+                            seats, gender_pref, distance_km, duration_min, solo_fare, route_polyline)
          VALUES ($1, $2, ST_MakePoint($3, $4)::geography, $5, ST_MakePoint($6, $7)::geography,
-                 $8, $9, $10, $11, $12, $13)
+                 $8, $9, $10, $11, $12, $13, $14)
          RETURNING id`,
         [
           me(req), body.from.name, body.from.lng, body.from.lat, body.to.name, body.to.lng,
           body.to.lat, body.departAt, body.seats, body.genderPref, est.distanceKm,
-          est.durationMin, est.soloFare,
+          est.durationMin, est.soloFare, est.polyline,
         ],
       );
       reply.code(201);
@@ -229,6 +236,14 @@ export function buildApp() {
           [rq.to_ride_id],
         );
         await query(`UPDATE rides SET status = 'matched' WHERE id = $1`, [rq.from_ride_id]);
+        // Rides that are now full turn down their other waiting requests.
+        await query(
+          `UPDATE ride_requests SET status = 'rejected', updated_at = now()
+            WHERE status = 'pending'
+              AND (to_ride_id IN (SELECT id FROM rides WHERE id IN ($1, $2) AND status = 'matched')
+                OR from_ride_id = $2)`,
+          [rq.to_ride_id, rq.from_ride_id],
+        );
       }
       return { id, status };
     };

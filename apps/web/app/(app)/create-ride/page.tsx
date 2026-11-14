@@ -3,7 +3,9 @@
 import type { GenderPref, Place, RideEstimate } from '@cabsathi/shared';
 import { CalendarDays, ChevronRight, CircleCheck, LockOpen, MapPin, ShieldCheck, User, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { FareCompare } from '@/components/FareCompare';
+import { RouteMap, type MapPoint } from '@/components/RouteMap';
 import { PlaceField } from '@/components/PlaceField';
 import { SeatSlider } from '@/components/SeatSlider';
 import { WaveHeader } from '@/components/WaveHeader';
@@ -35,6 +37,16 @@ export default function CreateRide() {
   const [error, setError] = useState<string | null>(null);
 
   const departAt = istDate(day, minutes);
+  const mapPoints = useMemo<MapPoint[]>(
+    () =>
+      from && to
+        ? [
+            { ...from, kind: 'pickup', label: from.name },
+            { ...to, kind: 'drop', label: to.name },
+          ]
+        : [],
+    [from, to],
+  );
   const iso = departAt.toISOString();
 
   useEffect(() => {
@@ -106,6 +118,12 @@ export default function CreateRide() {
           )}
         </section>
 
+        {from && to && (
+          <section className="card stack" aria-label="Route">
+            <RouteMap points={mapPoints} polyline={estimate?.polyline} height={170} />
+          </section>
+        )}
+
         <section className="card stack">
           <Label icon={<Users size={20} color="var(--primary)" />} text="Seats" />
           <div className="field" style={{ padding: 12 }}>
@@ -141,6 +159,10 @@ export default function CreateRide() {
             ))}
           </div>
         </section>
+
+        {estimate && from && to && (
+          <FareCompare km={estimate.distanceKm} minutes={estimate.durationMin} from={from} to={to} />
+        )}
 
         <div className="stack">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>

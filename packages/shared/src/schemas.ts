@@ -69,12 +69,28 @@ export interface Ride {
   durationMin: number;
   soloFare: number;
   status: RideStatus;
+  polyline: string | null;
 }
+
+export type RouteSource = 'google' | 'osrm' | 'estimate';
 
 export interface RideEstimate {
   distanceKm: number;
   durationMin: number;
   soloFare: number;
+  /** Encoded road route (Google polyline format) when a routing service was used. */
+  polyline: string | null;
+  source: RouteSource;
+}
+
+/** A place search result. Google results only have coordinates after `/places/:id`. */
+export interface PlaceSuggestion {
+  name: string;
+  /** Second line, e.g. "Noida, Uttar Pradesh". */
+  secondary?: string;
+  placeId?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface MatchCard {

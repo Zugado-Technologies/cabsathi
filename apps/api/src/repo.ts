@@ -3,7 +3,7 @@ import type { Ride, UserPublic } from '@cabsathi/shared';
 /** SQL fragment selecting a ride with lat/lng pulled out of the geography columns. */
 export const RIDE_COLUMNS = `
   r.id, r.user_id, r.from_name, r.to_name, r.depart_at, r.seats, r.gender_pref,
-  r.distance_km, r.duration_min, r.solo_fare, r.status,
+  r.distance_km, r.duration_min, r.solo_fare, r.status, r.route_polyline,
   ST_Y(r.from_point::geometry) AS from_lat, ST_X(r.from_point::geometry) AS from_lng,
   ST_Y(r.to_point::geometry) AS to_lat, ST_X(r.to_point::geometry) AS to_lng`;
 
@@ -24,6 +24,7 @@ export function toRide(row: any): Ride {
     durationMin: row.duration_min,
     soloFare: row.solo_fare,
     status: row.status,
+    polyline: row.route_polyline ?? null,
   };
 }
 

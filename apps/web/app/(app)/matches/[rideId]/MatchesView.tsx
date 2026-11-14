@@ -2,7 +2,8 @@
 
 import type { MatchCard as Match, ReceivedRequest, Ride } from '@cabsathi/shared';
 import { MailOpen, RefreshCw, Search, Settings } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RouteMap, type MapPoint } from '@/components/RouteMap';
 import { MatchCard } from '@/components/MatchCard';
 import { Empty } from '@/components/ui';
 import { WaveHeader } from '@/components/WaveHeader';
@@ -50,6 +51,16 @@ export function MatchesView({ rideId }: { rideId: string }) {
 
   const pending = received.filter((r) => r.status === 'pending').length;
 
+  // My route, plus where each matched person starts.
+  const mapPoints = useMemo<MapPoint[]>(() => {
+    if (!ride) return [];
+    return [
+      { ...ride.from, kind: 'pickup', label: `You: ${ride.from.name}` },
+      { ...ride.to, kind: 'drop', label: ride.to.name },
+      ...(matches ?? []).map((m) => ({ ...m.ride.from, kind: 'other' as const, label: m.user.name ?? 'Match' })),
+    ];
+  }, [ride, matches]);
+
   return (
     <>
       <WaveHeader
@@ -75,6 +86,7 @@ export function MatchesView({ rideId }: { rideId: string }) {
             {ride.status !== 'published' ? ` · ${ride.status}` : ''}
           </p>
         )}
+        {ride && <RouteMap points={mapPoints} polyline={ride.polyline} height={150} />}
         {error && <p className="error">{error}</p>}
 
         {matches === null ? (

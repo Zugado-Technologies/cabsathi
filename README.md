@@ -45,10 +45,23 @@ See `packages/shared/src/matching.ts` and `packages/shared/src/config.ts`.
 Formulas follow the CabSathi Matching Formula document; limits use the shorter
 of the two trips and each person's detour is checked against their own limit.
 
-## Not connected yet (local stand-ins)
+## Maps, routes and fare comparison
+
+| Setting | Where | What it turns on |
+|---|---|---|
+| `GOOGLE_MAPS_API_KEY` | `apps/api/.env` | Google place search (Places API (New)) and road routes with traffic (Routes API) |
+| `OSRM_URL` | `apps/api/.env` | Our own free routing server, used when there is no Google key |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | `apps/web/.env.local` | The interactive Google map on Create Ride and Matching Rides |
+
+With none of these set, everything still works locally: place search uses a built-in
+Delhi NCR list, distances are estimated (straight line x 1.3), and the map is a drawn preview.
+
+Fare comparison (Uber, Ola, Rapido, inDrive) uses fare cards in
+`packages/shared/src/fareCards.ts`. The rates there are placeholders: check them
+against each company's published rates before launch. No company gives live prices.
+
+## Not connected yet
 
 | Real service | Local stand-in |
 |---|---|
 | SMS OTP (MSG91 + DLT) | Fixed code `123456` |
-| Google Places search | Built-in list of Delhi NCR places |
-| Google Routes / OSRM distances | Straight-line distance x 1.3, 24 km/h |

@@ -15,4 +15,8 @@ export const env = {
   databaseUrl: required('DATABASE_URL'),
   jwtSecret: required('JWT_SECRET'),
   otpDevMode: process.env.OTP_DEV_MODE === 'true',
+  /** Server-side Google key (Places API (New) + Routes API). Empty = use local stand-ins. */
+  googleMapsKey: process.env.GOOGLE_MAPS_API_KEY || null,
+  /** Our own OSRM server, e.g. http://localhost:5000. Used when there's no Google key. */
+  osrmUrl: process.env.OSRM_URL?.replace(/\/$/, '') || null,
 };
